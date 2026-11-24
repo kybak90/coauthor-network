@@ -78,7 +78,8 @@ function renderMode() {
   const view = data.modes[state.mode];
   pairIndex = new Map(view.edges.map(edge => [pairKey(edge.a, edge.b), edge]));
   if (state.paper && !view.papers.includes(state.paper)) clearSelection();
-  if (!pairIndex.has(state.pair)) state.pair = null;
+  const filteredEdge = pairIndex.get(state.pair);
+  if (!filteredEdge || (state.paper && !filteredEdge.papers.includes(state.paper))) state.pair = null;
   if (!(state.person in view.nodes)) state.person = null;
   const lostCenter = state.center && !(state.center in view.nodes);
   if (!state.center || lostCenter) state.center = data.focus;

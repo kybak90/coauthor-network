@@ -2,7 +2,7 @@
 
 Kwan-Young Bak이 참여한 연구에서 어떤 저자들이 몇 편을 함께 썼는지 보여 주는 공개 그래프다. **Accepted & published**는 게재 확정·게재 논문을, **Include ongoing**은 여기에 연구실이 공개한 진행 원고를 더한 결과를 보여 준다. [GitHub Pages에서 열기](https://kybak90.github.io/coauthor-network/)
 
-![게재 논문 39편의 공저자 그래프와 그 아래 펼쳐진 논문 표](docs/network.png)
+![GitHub Pages에 배포된 게재 논문 39편의 공저자 그래프와 논문 표](docs/network.jpg)
 
 ## 그래프와 표
 
@@ -55,3 +55,5 @@ python -m http.server 8080 --bind 127.0.0.1 --directory dist
 이 저장소의 `main` 푸시와 매일 **한국 시각 오전 6시 17분** 예약 실행에서 두 원본을 점검한다. GitHub의 예약 실행은 대기열에 따라 늦어질 수 있다. 즉시 확인하려면 **Actions → Update coauthor network → Run workflow**를 누른다. [워크플로 실행 기록](https://github.com/kybak90/coauthor-network/actions/workflows/pages.yml)
 
 워크플로는 집계 규칙을 테스트하고 최신 정적 앱을 만든 뒤, 데이터와 앱의 해시를 운영 버전과 비교한다. 변경이 있으면 Chromium에서 그래프와 표의 상호작용을 테스트하고 통과한 산출물을 Pages에 배포한다. 수집·검증 실패 시 직전 배포가 계속 서비스된다. 각 실행의 요약에는 원본 커밋과 두 보기의 집계 결과가 남는다.
+
+GitHub는 공개 저장소에 60일간 활동이 없으면 예약 실행을 비활성화한다. 그 경우 **Actions → Update coauthor network → Enable workflow**에서 재개할 수 있다. [GitHub의 예약 실행 안내](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule)

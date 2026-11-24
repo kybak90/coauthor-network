@@ -25,11 +25,11 @@ jobs:
     outputs:
       changed: ${{ steps.compare.outputs.changed }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: main
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
           cache: pip
@@ -43,7 +43,7 @@ jobs:
         run: python -m scripts.build
       - name: Read Pages configuration
         id: pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
         with:
           enablement: false
       - name: Compare with the published app and data
@@ -68,7 +68,7 @@ jobs:
       - name: Test the artifact in Chrome
         if: steps.compare.outputs.changed == 'true' || github.event_name != 'schedule'
         run: python tests/browser.py
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         if: steps.compare.outputs.changed == 'true'
         with:
           path: dist
@@ -87,4 +87,4 @@ jobs:
     steps:
       - name: Deploy tested site
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
