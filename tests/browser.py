@@ -26,7 +26,7 @@ def artifact(route):
 
 
 def switch(page, mode):
-    name = "Accepted & published" if mode == "accepted" else "Include ongoing"
+    name = "Accepted & Published" if mode == "accepted" else "Include Ongoing"
     page.get_by_text(name, exact=True).click()
     expect(page.get_by_role("radio", name=name)).to_be_checked()
 
@@ -67,9 +67,22 @@ def exercise(page, url, screenshot=None, mobile_screenshot=None):
         return (await fetch('./data-' + manifest.version + '.json')).json();
     }""")
     accepted, ongoing = data["modes"]["accepted"], data["modes"]["ongoing"]
-    check_view(page, accepted)
+    expect(page.locator(".modes label")).to_have_text(["Include Ongoing", "Accepted & Published"])
+    expect(page.get_by_role("radio", name="Include Ongoing")).to_be_checked()
+    check_view(page, ongoing)
     if screenshot:
         page.screenshot(path=screenshot)
+
+    switch(page, "accepted")
+    page.reload()
+    expect(page.get_by_role("radio", name="Accepted & Published")).to_be_checked()
+    check_view(page, accepted)
+    page.goto("about:blank")
+    page.goto(url)
+    expect(page.get_by_role("radio", name="Include Ongoing")).to_be_checked()
+    check_view(page, ongoing)
+    switch(page, "accepted")
+    check_view(page, accepted)
 
     papers = {p["id"]: p for p in data["papers"]}
     hssc = "doi:10.1057/s41599-026-08463-7"
@@ -99,7 +112,10 @@ def exercise(page, url, screenshot=None, mobile_screenshot=None):
     expect(page.locator(".node.active")).to_have_count(0)
 
     if accepted["edges"]:
-        edge = next((e for e in accepted["edges"] if e["a"] == data["focus"] and e["b"] == "woojoo-lee"), accepted["edges"][0])
+        coauthors = [a for a in accepted["nodes"] if a != data["focus"]]
+        coauthor = "woojoo-lee" if "woojoo-lee" in coauthors else coauthors[0]
+        pair = {data["focus"], coauthor}
+        edge = next(e for e in accepted["edges"] if {e["a"], e["b"]} == pair)
         key = edge["a"] + "|" + edge["b"]
         click_edge(page, key)
         expect(page.locator("#rows tr")).to_have_count(len(edge["papers"]))
@@ -108,12 +124,33 @@ def exercise(page, url, screenshot=None, mobile_screenshot=None):
         expanded = next(e for e in ongoing["edges"] if (e["a"], e["b"]) == (edge["a"], edge["b"]))
         expect(page.locator("#rows tr")).to_have_count(len(expanded["papers"]))
         page.get_by_role("button", name="All papers").click()
+
+        page.locator("#paper-toggle").click()
+        node = page.locator("[data-author=" + json.dumps(coauthor) + "]")
+        label = node.locator("text")
+        (label if label.is_visible() else node.locator(".dot")).click()
+        expect(page.locator("#table-scroll")).to_be_visible()
+        expect(node).to_have_class(re.compile(r"\bcenter\b"))
+        neighbors = sum(coauthor in (e["a"], e["b"]) for e in ongoing["edges"])
+        expect(page.locator(".edge.active")).to_have_count(neighbors)
+        filtered_rows = page.locator("#rows tr")
+        assert filtered_rows.evaluate_all("rows => rows.map(r => r.dataset.paper)") == expanded["papers"]
+        switch(page, "accepted")
+        assert filtered_rows.evaluate_all("rows => rows.map(r => r.dataset.paper)") == edge["papers"]
+        filtered_rows.first.get_by_role("button").click()
+        expect(filtered_rows.first.get_by_role("button")).to_have_attribute("aria-pressed", "true")
+        expect(filtered_rows).to_have_count(len(edge["papers"]))
+        page.get_by_role("button", name="All papers").click()
+        check_view(page, accepted)
+        page.locator("[data-author=" + json.dumps(data["focus"]) + "]").press("Enter")
+        check_view(page, accepted)
     switch(page, "ongoing")
     check_view(page, ongoing)
     picker = page.get_by_role("combobox", name="Center on author")
     author = next((a for a in accepted["nodes"] if a != data["focus"]), data["focus"])
     node = page.locator("[data-author=" + json.dumps(author) + "]")
     picker.select_option(author)
+    check_view(page, ongoing)
     expect(node).to_have_class(re.compile(r"\bcenter\b"))
     dot = node.locator(".dot")
     rect = dot.bounding_box()
@@ -128,7 +165,7 @@ def exercise(page, url, screenshot=None, mobile_screenshot=None):
     stored = page.evaluate("JSON.parse(localStorage.getItem('coauthor-network:positions'))")
     assert author in stored, "The drag did not persist a node position"
     page.reload()
-    expect(page.get_by_role("radio", name="Include ongoing")).to_be_checked()
+    expect(page.get_by_role("radio", name="Include Ongoing")).to_be_checked()
     check_view(page, ongoing)
     position = node.get_attribute("transform")
     switch(page, "accepted")
@@ -157,7 +194,7 @@ def exercise(page, url, screenshot=None, mobile_screenshot=None):
         page.screenshot(path=mobile_screenshot)
     assert not errors, errors
     print(f"Browser passed: {len(accepted['papers'])} accepted / {len(ongoing['papers'])} including ongoing; "
-          "selection, pair filtering, drag, zoom, persistence and mobile table.")
+          "default view, author and edge filters, selection, drag, zoom, persistence and mobile table.")
     return data
 
 
@@ -174,7 +211,7 @@ def check_refresh(page, data):
     before = page.locator(".node").first.get_attribute("transform")
     page.evaluate("document.dispatchEvent(new Event('visibilitychange'))")
     expect(page.get_by_role("button", name=paper["title"], exact=True)).to_have_attribute("aria-pressed", "true")
-    expect(page.get_by_role("radio", name="Include ongoing")).to_be_checked()
+    expect(page.get_by_role("radio", name="Include Ongoing")).to_be_checked()
     assert before == page.locator(".node").first.get_attribute("transform")
     print("Live refresh passed: new public data retained the mode, selection and positions.")
 

@@ -1,9 +1,9 @@
-import {CoauthorGraph, pairKey, readSetting, saveSetting} from "./graph.js";
+import {CoauthorGraph, pairKey} from "./graph.js";
 
 const $ = selector => document.querySelector(selector);
 const rows = $("#rows"), scroll = $("#table-scroll"), centerPicker = $("#center");
 const state = {
-  mode: readSetting("mode", "accepted") === "ongoing" ? "ongoing" : "accepted",
+  mode: history.state?.coauthorMode === "accepted" ? "accepted" : "ongoing",
   center: null, person: null, paper: null, pair: null,
 };
 let data, version, papers, pairIndex, loading = false;
@@ -12,21 +12,24 @@ function clearSelection() {
   state.person = state.paper = state.pair = null;
 }
 
-function chooseAuthor(id) {
+function showSharedPapers(pair) {
+  state.pair = pair;
+  expand(true);
+  scroll.scrollTop = 0;
+}
+
+function chooseAuthor(id, showPapers = false) {
   clearSelection();
   state.center = state.person = id;
+  if (showPapers) showSharedPapers(id === data.focus ? null : pairKey(data.focus, id));
   graph.centerOn(id);
   renderPapers();
 }
 
 const graph = new CoauthorGraph($("#graph"), (type, id) => {
-  if (type === "author") { chooseAuthor(id); return; }
+  if (type === "author") { chooseAuthor(id, true); return; }
   clearSelection();
-  if (type === "edge") {
-    state.pair = id;
-    expand(true);
-    scroll.scrollTop = 0;
-  }
+  if (type === "edge") showSharedPapers(id);
   renderPapers();
 });
 
@@ -36,9 +39,10 @@ function expand(open) {
 }
 
 function highlight() {
-  graph.highlight({...state, paper: papers.get(state.paper)});
+  // The table shows papers with Bak while the graph highlights all of the selected author's connections.
+  graph.highlight({...state, pair: state.person ? null : state.pair, paper: papers.get(state.paper)});
   centerPicker.value = state.center;
-  $("#clear-paper").hidden = !state.paper && !state.person;
+  $("#clear-paper").hidden = !(state.paper || (state.person && !state.pair));
   for (const row of rows.children) {
     const selected = row.dataset.paper === state.paper;
     row.classList.toggle("selected", selected);
@@ -111,7 +115,7 @@ for (const radio of document.querySelectorAll("input[name=mode]")) {
   radio.checked = radio.value === state.mode;
   radio.addEventListener("change", () => {
     state.mode = radio.value;
-    saveSetting("mode", state.mode);
+    history.replaceState({...history.state, coauthorMode: state.mode}, "");
     if (data) renderMode();
   });
 }
