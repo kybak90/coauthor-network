@@ -1,0 +1,5 @@
+beautifulsoup4==4.13.4
+bibtexparser==1.4.3
+pyparsing==3.2.3
+networkx==3.4.2
+numpy==2.2.6
